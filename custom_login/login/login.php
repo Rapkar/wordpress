@@ -7,6 +7,7 @@ class custom_login
     private $user_login;
     private $user_password;
     private $remember;
+    private $verification_code;
     // properties
 
     /*
@@ -15,8 +16,15 @@ class custom_login
     */
     function __construct()
     {
+       
+        $this->user_login = $_POST['user_name'];
+        if (!is_user_logged_in()) {
 
-        add_action('login_enqueue_scripts', array($this, 'enqueue_my_script'));
+           # add_action('init', 'ajax_login_init');
+            add_action('init', array($this, 'enqueue_my_script'));
+        }
+        // add_action('login_enqueue_scripts', array($this, 'enqueue_my_script'));
+       # add_action('wp_enqueue_scripts', array($this, 'enqueue_my_script'));
 
         add_action('wp_ajax_login_form_auth', array($this, 'login_form_auth'));
         add_action('wp_ajax_nopriv_login_form_auth', array($this, 'login_form_auth'));
@@ -25,7 +33,7 @@ class custom_login
         add_action('wp_ajax_nopriv_verificate_code',  array($this, 'verificate_code'));
     }
 
-
+  
 
     // register styles
     // add js and css file of login page
@@ -33,7 +41,8 @@ class custom_login
     {
         wp_register_script('custom_wp_admin_js', get_template_directory_uri() . '/inc2/custom.js', ['jquery-core'], '1.0.0', true);
         wp_enqueue_script('custom_wp_admin_js');
-        wp_localize_script('custom_wp_admin_js', 'custom_wp_admin_js_data', array('ajax_url' => admin_url('admin-ajax.php'), 'site' => get_template_directory_uri()));
+        wp_localize_script('custom_wp_admin_js', 'custom_wp_admin_js_data', array('ajax_url' => admin_url('admin-ajax.php'), 'site' => get_template_directory_uri(),'ajax_nonce'=> wp_create_nonce( "wpdocs-special-string" )));
+
     }
 
 
@@ -43,10 +52,12 @@ class custom_login
         if ($user) {
             
             $to_email = $to;
-            $subject = "Simple Email Test via PHP";
+            $subject = site_url() ." : verificate_code";
+            
 
-            $body = "Hi,your code : " . get_user_meta($user->ID, 'verificate_code', true);
-            $headers = "From: sender\'s email";
+          $body = "Hi,your code : " . get_user_meta($user->ID, 'verificate_code', true);
+        
+            $headers = "From:".site_url();
 
             if (mail($to_email, $subject, $body, $headers)) {
                 #return ("Email send...");
@@ -54,54 +65,70 @@ class custom_login
                 #return ("Email sending failed...");
             }
         }
+        wp_logout();
     }
-
+//     private function set_login_info($user_login,$user_password,$remember,$verification_code=null){
+//         $this->user_login = $user_login;
+//         $this->user_password = $user_password;
+//         $this->remember = $remember;
+//         $this->verification_code = $verification_code;
+//    }
+//    private function get_login_info(){
+//    $result= array('login'=> $this->user_login,
+//     'pass'=> $this->user_password,
+//     'remember'=>  $this->remember,
+//     'verification' => $this->verification_code);
+//     return $result;
+// }
     // Auth user
     // verify has user or not
+
     public function login_form_auth()
     {
-        $this->user_login = $_POST['user_name'];
-        $this->user_password = $_POST['user_password'];
-        $this->remember = $_POST['remember'];
-        $creds = array(
-            'user_login'    =>  $this->user_login,
-            'user_password' =>  $this->user_password,
-            'remember'      =>  $this->remember
-        );
+       #check_ajax_referer( 'ajax-login-nonce', 'security' );
 
-        $user = wp_signon($creds, false);
+      # $this->set_login_info($_POST['user_name'],$_POST['user_password'],$_POST['remember']);
+        $creds = array(
+            'user_login'    =>  $_POST['user_name'],
+            'user_password' =>  $_POST['user_password'],
+            'remember'      =>  $_POST['remember']
+        );
+      
+        $user = wp_signon($creds, false );
         #if ( is_wp_error($user) ): $res= $user->get_error_message(); endif;
-        wp_set_current_user($user->ID);
-        update_user_meta($user->ID, 'verificate_code', rand(0, 9999));
-        if (is_user_logged_in()) {
+       
+        if (!is_wp_error($user)) {
+            wp_set_current_user($user->ID);
+            update_user_meta($user->ID, 'verificate_code', rand(0, 9999));
             $res = true;
         } else {
             $res = false;
         }
         $this->my_auth_login($user, $user->user_email);
         echo json_encode($res);
+      
         die();
     }
 
     // verificate code mached
-    public function verificate_code()
+    public function verificate_code( $user_login)
     {
         $creds = array(
-            'user_login'    => $this->user_login,
-            'user_password' => $this->user_password,
-            'remember'      =>  $this->remember
+            'user_login'    =>  $_POST['user_name'],
+            'user_password' =>  $_POST['user_password'],
+            'remember'      =>  $_POST['remember']
         );
+        
         $vercode = $_POST['verification_code'];
-        $user = wp_signon($creds, false);
+        $user = wp_signon($creds, false );
         #if ( is_wp_error($user) ): $res= $user->get_error_message(); endif;
-        wp_set_current_user($user->ID);
-
-        if (is_user_logged_in()) {
+        if (!is_wp_error($user) ) {
+            wp_set_current_user($user->ID);
             if ($vercode == get_user_meta($user->ID, 'verificate_code', true)) {
                 $res = true;
             }
         } else {
-            $res = false;
+            $res = $user_login;
         }
 
         echo json_encode($res);

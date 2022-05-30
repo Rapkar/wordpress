@@ -37,9 +37,10 @@ jQuery(document).ready(function($) {
 
     });
     jQuery(document).on('keyup', 'input[type = text]#verification_code', function() {
-        var user_login = $('#user_login').val();
-        var user_pass = $('#user_pass').val();
-        var verification_code = $('#verification_code').val();
+        var user_login = $('form #user_login').val();
+        var user_pass = $('form #user_pass').val();
+        var verification_code = $('form #verification_code').val();
+        var remember = $('form #rememberme').val();
         jQuery.ajax({
             type: "post",
             dataType: "json",

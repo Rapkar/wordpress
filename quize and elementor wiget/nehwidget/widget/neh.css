@@ -1,0 +1,34 @@
+.nehsidget .progressbar {
+    position: relative;
+    max-width: 100%;
+    width: 100%;
+    margin: 30px auto 0;
+    height: 30px;
+    background: #274545;
+    overflow: hidden;
+}
+
+.nehsidget span.progress {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    background: #559f9f;
+    transition: all .3s;
+    height: 100%;
+}
+
+.nehsidget .counter {
+    z-index: 999;
+    position: absolute;
+    right: 1px;
+    color: #fff;
+}
+
+.nehsidget {
+    direction: rtl;
+    float: right;
+    text-align: right;
+    width: 100%;
+}
